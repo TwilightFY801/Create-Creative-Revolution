@@ -64,12 +64,6 @@
 
 ---
 
-## 🖼️ 模组图片
-
-![Create: Creative Revolution](icon.png)
-
----
-
 ## ⬇️ 下载
 
 最新版本请到本仓库右侧的 **Releases** 下载 jar 文件。
