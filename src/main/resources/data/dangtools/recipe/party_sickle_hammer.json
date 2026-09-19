@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    {
+      "item": "dangtools:hammer"
+    },
+    {
+      "item": "dangtools:sickle"
+    }
+  ],
+  "result": {
+    "id": "dangtools:party_sickle_hammer",
+    "count": 1
+  }
+}

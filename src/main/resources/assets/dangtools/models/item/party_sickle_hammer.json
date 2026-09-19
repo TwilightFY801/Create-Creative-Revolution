@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "dangtools:item/party_sickle_hammer"
+  }
+}

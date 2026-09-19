@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": ["HND","BEP","WTX"],
+  "key": {
+    "H": {"item": "minecraft:heart_of_the_sea"},
+    "N": {"item": "minecraft:nether_star"},
+    "D": {"item": "minecraft:dragon_egg"},
+    "B": {"item": "minecraft:diamond_block"},
+    "E": {"item": "simulated:white_portable_engine"},
+    "P": {"item": "minecraft:netherite_block"},
+    "W": {"item": "dangtools:party_weight"},
+    "T": {"item": "minecraft:iron_block"},
+    "X": {"item": "minecraft:obsidian"}
+  },
+  "result": {"id": "dangtools:party_power", "count": 1}
+}

@@ -1,0 +1,26 @@
+﻿{
+  "variants": {
+    "facing=down": {
+      "model": "dangtools:block/party_power/block_vertical",
+      "x": 180
+    },
+    "facing=east": {
+      "model": "dangtools:block/party_power/block",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "dangtools:block/party_power/block",
+      "y": 180
+    },
+    "facing=south": {
+      "model": "dangtools:block/party_power/block"
+    },
+    "facing=up": {
+      "model": "dangtools:block/party_power/block_vertical"
+    },
+    "facing=west": {
+      "model": "dangtools:block/party_power/block",
+      "y": 90
+    }
+  }
+}

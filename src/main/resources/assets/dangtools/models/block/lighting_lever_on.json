@@ -1,0 +1,47 @@
+{
+  "credit": "Create: Creative Revolution - 照明拉杆（开）：手把整体朝反方向扳过去（与关状态一眼可分）",
+  "ambientocclusion": false,
+  "texture_size": [16, 16],
+  "textures": {
+    "particle": "dangtools:block/lighting_lever",
+    "base": "dangtools:block/lighting_lever",
+    "lever": "dangtools:block/lighting_lever"
+  },
+  "elements": [
+    {
+      "name": "base",
+      "from": [5, -0.02, 4],
+      "to": [11, 2.98, 12],
+      "faces": {
+        "down":  { "uv": [5, 4, 11, 12], "texture": "#base", "cullface": "down" },
+        "up":    { "uv": [5, 4, 11, 12], "texture": "#base" },
+        "north": { "uv": [5, 0, 11, 3],  "texture": "#base" },
+        "south": { "uv": [5, 0, 11, 3],  "texture": "#base" },
+        "west":  { "uv": [4, 0, 12, 3],  "texture": "#base" },
+        "east":  { "uv": [4, 0, 12, 3],  "texture": "#base" }
+      }
+    },
+    {
+      "name": "handle",
+      "from": [7, 1, 7],
+      "to": [9, 11, 9],
+      "rotation": { "origin": [8, 1, 8], "axis": "x", "angle": 45 },
+      "faces": {
+        "up":    { "uv": [7, 6, 9, 8],  "texture": "#lever" },
+        "north": { "uv": [7, 6, 9, 16], "texture": "#lever" },
+        "south": { "uv": [7, 6, 9, 16], "texture": "#lever" },
+        "west":  { "uv": [7, 6, 9, 16], "texture": "#lever" },
+        "east":  { "uv": [7, 6, 9, 16], "texture": "#lever" }
+      }
+    }
+  ],
+  "display": {
+    "gui": { "rotation": [30, 225, 0], "translation": [0, 0, 0], "scale": [0.625, 0.625, 0.625] },
+    "fixed": { "rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [1, 1, 1] },
+    "ground": { "rotation": [0, 0, 0], "translation": [0, 3, 0], "scale": [0.25, 0.25, 0.25] },
+    "thirdperson_righthand": { "rotation": [75, 45, 0], "translation": [0, 2.5, 0], "scale": [0.375, 0.375, 0.375] },
+    "thirdperson_lefthand":  { "rotation": [75, 45, 0], "translation": [0, 2.5, 0], "scale": [0.375, 0.375, 0.375] },
+    "firstperson_righthand": { "rotation": [0, 45, 0], "translation": [0, 0, 0], "scale": [0.4, 0.4, 0.4] },
+    "firstperson_lefthand":  { "rotation": [0, 225, 0], "translation": [0, 0, 0], "scale": [0.4, 0.4, 0.4] }
+  }
+}

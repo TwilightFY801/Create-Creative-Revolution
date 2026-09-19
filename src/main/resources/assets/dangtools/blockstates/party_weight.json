@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "dangtools:block/party_weight"
+    }
+  }
+}

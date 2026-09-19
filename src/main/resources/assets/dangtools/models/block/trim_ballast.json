@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "dangtools:block/trim_ballast_casing"
+  }
+}

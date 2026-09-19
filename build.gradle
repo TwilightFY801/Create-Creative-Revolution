@@ -1,0 +1,138 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.146'
+    id 'idea'
+}
+
+version = mod_version
+group = mod_group_id
+
+sourceSets.main.resources {
+    srcDir('src/generated/resources')
+}
+
+base {
+    archivesName = "[机械动力：创意革命] Create-Creative Revolution-1.21.1 NeoForge"
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    runs {
+        client {
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+        data {
+            data()
+            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+        configureEach {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+repositories {
+    // Create and the aeronautics bundled jar are provided from the local ./libs flat dir.
+    flatDir {
+        dirs 'libs'
+    }
+    maven {
+        // Create & friends, just in case we need them from Maven
+        name = 'Create'
+        url = 'https://maven.tterrag.com/'
+    }
+}
+
+dependencies {
+    // Create (鏈烘鍔ㄥ姏) API - provided by the modpack at runtime; used only for compilation here.
+    // We compile against the actual create jar shipped in the 鍖楁瀬鏄?modpack so signatures match exactly,
+    // plus Create's bundled (jarjar) libraries that its public class hierarchy references.
+    compileOnly files('libs/create.jar')
+    compileOnly files('libs/ponder.jar')
+    compileOnly files('libs/flywheel.jar')
+    compileOnly files('libs/registrate.jar')
+    // Aeronautics bundled jar (for any classes we need; the recipe uses aeronautics item IDs, no code dependency required).
+    compileOnly files('libs/aeronautics.jar')
+    // Offroad sub-module (wheel mounts / tires) - nested inside the bundled jar.
+    compileOnly files('libs/offroad.jar')
+    // Sable physics library (offroad's wheel mount BE implements its interfaces).
+    compileOnly files('libs/sable.jar')
+    // Sable 的 companion 公共库（Pose3d / SubLevelAccess / BoundingBox3d 等）。
+    // 它原本是 jarjar 嵌在 sable.jar 的 META-INF/jarjar/ 里的，编译器看不见，
+    // 所以从这里单独解出来一份放在 libs/ 供编译使用（运行时仍由 sable.jar 自己提供）。
+    compileOnly files('libs/sable-companion.jar')
+    // Veil (foundry.veil) - jarjar-bundled inside sable; required by OffroadDataComponents.TIRE.
+    compileOnly files('libs/veil.jar')
+    // Simulated sub-module (rope/winch system) - nested inside the bundled jar.
+    compileOnly files('libs/simulated.jar')
+}
+
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+    ]
+    inputs.properties replaceProperties
+    filteringCharset = 'UTF-8'
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
+    // PCL 等第三方启动器读的是旧路径 META-INF/mods.toml，NeoForge 21.1 用的是 neoforge.mods.toml，
+    // 所以这里再放一份内容相同的 mods.toml（两者只是文件名不同，不影响 NeoForge 加载）。
+    var metaDirProvider = layout.buildDirectory.dir("generated/sources/modMetadata/META-INF")
+    doLast {
+        def mdDir = metaDirProvider.get().asFile
+        def generated = new File(mdDir, "neoforge.mods.toml")
+        def legacy = new File(mdDir, "mods.toml")
+        if (generated.exists()) {
+            legacy.setText(generated.getText('UTF-8'), 'UTF-8')
+        }
+    }
+}
+
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

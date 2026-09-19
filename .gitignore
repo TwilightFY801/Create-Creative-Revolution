@@ -1,0 +1,29 @@
+# ---- Gradle / build output ----
+.gradle/
+build/
+out/
+run/
+
+# ---- IDE ----
+.idea/
+*.iml
+.vscode/
+*.ipr
+*.iws
+
+# ---- Logs / OS ----
+*.log
+logs/
+Thumbs.db
+Desktop.ini
+
+# ---- Third-party dependency jars (NOT redistributed here) ----
+# Create / Ponder / Flywheel / Registrate / Aeronautics / Offroad / Sable /
+# Simulated / Veil are the property of their respective authors.
+# Put them in libs/ locally to compile; see libs/README.md.
+libs/*.jar
+libs/*.zip
+
+# ---- Output jars (download via GitHub Releases instead) ----
+*.jar
+!gradle/wrapper/gradle-wrapper.jar

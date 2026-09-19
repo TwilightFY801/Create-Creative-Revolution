@@ -1,0 +1,13 @@
+[
+  {
+    "modid": "${mod_id}",
+    "name": "${mod_name}",
+    "description": "Create: Creative Revolution",
+    "version": "${mod_version}",
+    "mcversion": "${minecraft_version}",
+    "logoFile": "icon.png",
+    "authors": [ "Twilight飞友" ],
+    "credits": "",
+    "url": ""
+  }
+]

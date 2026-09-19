@@ -1,0 +1,1 @@
+{ "variants": { "facing=east": { "model": "dangtools:block/dual_wheel_suspension", "y": 90 }, "facing=north": { "model": "dangtools:block/dual_wheel_suspension" }, "facing=south": { "model": "dangtools:block/dual_wheel_suspension", "y": 180 }, "facing=west": { "model": "dangtools:block/dual_wheel_suspension", "y": 270 } } }
