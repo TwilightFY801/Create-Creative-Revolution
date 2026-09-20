@@ -89,6 +89,8 @@ dependencies {
     compileOnly files('libs/sable-companion.jar')
     // Veil (foundry.veil) - jarjar-bundled inside sable; required by OffroadDataComponents.TIRE.
     compileOnly files('libs/veil.jar')
+    // LambDynamicLights API（可选依赖：运行时用 try/catch + 反射，缺失也不崩）
+    compileOnly files('libs/lambdynlights-api.jar')
     // Simulated sub-module (rope/winch system) - nested inside the bundled jar.
     compileOnly files('libs/simulated.jar')
 }

@@ -124,7 +124,7 @@ public final class DangCreativeTabSections {
         return list;
     }
 
-    /** 分区的横幅贴图：assets/dangtools/textures/gui/sprites/creative_tab/&lt;id&gt;.png */
+    /** 分区的横幅贴图：assets/textures/gui/sprites/creative_tab/&lt;id&gt;.png */
     public static ResourceLocation spriteFor(Section section) {
         return ResourceLocation.fromNamespaceAndPath("dangtools", "creative_tab/" + section.id());
     }

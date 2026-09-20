@@ -70,6 +70,10 @@ public final class DangClientEvents {
         if (minecraft == null || minecraft.player == null || minecraft.level == null) {
             return;
         }
+        // 【已停用】LambDynamicLights 方案：光源移动会触发区块光照重建 -> 移动很卡，
+        // 且它不提供体积光。改用 DangHeadlightBeamRenderer 的纯渲染光束（丁达尔）。
+        // com.dangtools.client.DangDynamicLights.clientTick(minecraft);
+
         LocalPlayer player = minecraft.player;
 
         boolean controllerActive = isControllerActive();
@@ -91,6 +95,15 @@ public final class DangClientEvents {
         // 本地镜像：无论有没有变化都写，保证客户端渲染立刻跟手
         LightInputState.setClientLocal(current);
 
+        // 诊断：每 40 tick 打一次客户端实际采样到的按键（定位"灯不响应"到底是客户端没采到还是服务端没收）
+        if (player.tickCount % 40 == 0) {
+            com.dangtools.DangTools.LOGGER.info(
+                    "[dangtools][cli] fwd={} back={} left={} right={} screen={} passenger={}",
+                    rawDown(DangKeybinds.FORWARD), rawDown(DangKeybinds.BACK),
+                    rawDown(DangKeybinds.LEFT), rawDown(DangKeybinds.RIGHT),
+                    minecraft.screen != null, player.isPassenger());
+        }
+
         if (!current.same(lastSent) || controllerActive != lastControllerActive) {
             lastSent = current;
             lastControllerActive = controllerActive;
@@ -108,8 +121,14 @@ public final class DangClientEvents {
      * <br/>→ 所以不再要求"手持并正在控制遥控器/打字机"。
      * （「载具已物理化」只有服务端知道灯在哪，由服务端校验。）
      */
-    private static boolean conditionsMetLocally(LocalPlayer player, boolean controllerActive) {
-        return player.isPassenger();
+    private static boolean conditionsMetLocally(net.minecraft.client.player.LocalPlayer player, boolean controllerActive) {
+        // 机主要求：【只有坐着才响应】—— 站着按 WASD 不该点亮任何灯。
+        // 说明：早先"坐着却一个包都不发"并不是这条判定的锅（日志显示坐着时 isPassenger 也为真），
+        // 真正的修复在服务端（已不再强制 isPassenger）。所以这里把门槛加回来是安全的。
+        // 若以后用了 Sable/航空学的特殊座椅导致 isPassenger() 为假，把这条改成
+        //   player.isPassenger() || player.getVehicle() != null
+        // 即可。
+        return player != null && (player.isPassenger() || player.getVehicle() != null);
     }
 
     /**
@@ -156,5 +175,55 @@ public final class DangClientEvents {
         } catch (Throwable ignored) {
             return false;
         }
+    }
+    /**
+     * 大灯瞄准：<b>潜行 + 准星对着大灯 + 滚滚轮</b>。
+     * <ul>
+     *   <li>潜行 + 滚轮 = <b>俯仰</b>（上下）</li>
+     *   <li>潜行 + Ctrl + 滚轮 = <b>偏航</b>（左右）</li>
+     * </ul>
+     * 只改光束朝向，不碰光照计算。
+     */
+    @SubscribeEvent
+    public static void onScroll(net.neoforged.neoforge.client.event.InputEvent.MouseScrollingEvent event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == null || minecraft.level == null || minecraft.screen != null) {
+            return;
+        }
+        if (!minecraft.player.isShiftKeyDown()) {
+            return;
+        }
+        if (!(minecraft.hitResult instanceof net.minecraft.world.phys.BlockHitResult hit)) {
+            return;
+        }
+        if (!(minecraft.level.getBlockEntity(hit.getBlockPos())
+                instanceof com.dangtools.lighting.DangLightBlockEntity be)) {
+            return;
+        }
+        if (!(be.getBlockState().getBlock() instanceof com.dangtools.lighting.DangLightBlock light)
+                || light.kind() != com.dangtools.lighting.DangLightBlock.Kind.HEADLIGHT) {
+            return;
+        }
+        double delta = event.getScrollDeltaY();
+        if (delta == 0.0D) {
+            return;
+        }
+        boolean ctrl = minecraft.player.isCrouching() && org.lwjgl.glfw.GLFW.glfwGetKey(
+                minecraft.getWindow().getWindow(), org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_CONTROL) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
+        float step = 5.0F * (float) Math.signum(delta);
+        float yaw = be.aimYaw();
+        float pitch = be.aimPitch();
+        if (ctrl) {
+            yaw += step;
+        } else {
+            pitch += step;
+        }
+        yaw = net.minecraft.util.Mth.clamp(yaw, -80.0F, 80.0F);
+        pitch = net.minecraft.util.Mth.clamp(pitch, -60.0F, 60.0F);
+        // 本地立即生效（手感），再发服务端固化
+        be.setAim(yaw, pitch);
+        net.neoforged.neoforge.network.PacketDistributor.sendToServer(
+                new com.dangtools.network.AimC2SPayload(hit.getBlockPos(), yaw, pitch));
+        event.setCanceled(true);
     }
 }

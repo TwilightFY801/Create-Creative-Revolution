@@ -77,10 +77,9 @@ public final class LightingConditions {
         if (player == null || level == null || level.isClientSide) {
             return false;
         }
-        // 条件 1：坐着（骑乘/坐垫）—— 坐下后 WASD 本来就无法移动角色，所以这一条足够
-        if (!player.isPassenger()) {
-            return false;
-        }
+        // 条件 1（已按机主实测放宽）：不再要求"必须坐着"。原来那样会导致"站在载具旁拉杆按 WASD"时
+        // 服务端拒收整条输入、灯完全不响应。输入归属改由 LightInputState 的
+        // "离该灯最近的玩家"判定（见 inputsFor），所以不会乱套。
         // 条件 2：载具已物理化。
         // 注意：机主实测反馈"转向灯/刹车灯/车内灯全都没反应"，而客户端采样逻辑是对的，
         // 所以断点很可能就在这道服务端校验上 —— 玩家坐在载具上时，玩家的世界坐标

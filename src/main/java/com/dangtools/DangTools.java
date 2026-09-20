@@ -18,6 +18,8 @@ public class DangTools {
         Registration.register(modEventBus);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             modEventBus.addListener(com.dangtools.client.ClientSetup::registerRenderers);
+        // ★ 必须显式注册：大灯光锥的核心着色器（ClientSetup 没有 @EventBusSubscriber）
+        modEventBus.addListener(com.dangtools.client.ClientSetup::onRegisterShaders);
             modEventBus.addListener(com.dangtools.client.ClientSetup::copyMotorVisual);
         }
     }

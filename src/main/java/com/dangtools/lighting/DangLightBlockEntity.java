@@ -44,14 +44,14 @@ public class DangLightBlockEntity extends LightPlatformBlockEntity {
     private static final int INTERIOR_MAX = 14;
 
     /** 光锥几何参数（与机主规格一一对应）。 */
-    private static final int LENGTH = 50;
+    private static final int LENGTH = 100;
     private static final int WIDTH_NEAR = 10;
-    private static final int WIDTH_FAR = 50;
-    private static final int DECAY_DISTANCE = 40;
-    private static final int DECAY_SIDE = 40;
+    private static final int WIDTH_FAR = 100;
+    private static final int DECAY_DISTANCE = 80;
+    private static final int DECAY_SIDE = 80;
     private static final int MAX_LIGHT = 15;
     private static final int MIN_LIGHT = 1;
-    private static final int MAX_CONE_BLOCKS = 65536;
+    private static final int MAX_CONE_BLOCKS = 8192;
     private static final double MAX_STEP_DISTANCE_SQ = 4.0D;
     private static final double TURN_COS_THRESHOLD = 0.995D;
     private static final int CONE_MAX_AGE = 20;
@@ -145,8 +145,14 @@ public class DangLightBlockEntity extends LightPlatformBlockEntity {
      * 所以观感是整片一起动，也不会出现半新半旧的空洞。
      */
     private void refreshCone() {
-        org.joml.Vector3d apex = worldCenter();
-        org.joml.Vector3d direction = beamDirection();
+        // ★ 已改用 LambDynamicLights 的动态光源行为（见 DangHeadlightBehavior / DangDynamicLights）：
+        //   不再向世界放置任何 minecraft:light 方块 —— 零割裂、不掉帧，还能拿到丁达尔光柱。
+        //   下面这段旧的"放光方块"实现整段停用，保留代码以便回退。
+        if (true) {
+            return;
+        }
+        org.joml.Vector3d apex = new org.joml.Vector3d(worldPosition.getX() + 0.5D, worldPosition.getY() + 0.5D, worldPosition.getZ() + 0.5D);
+        org.joml.Vector3d direction = localBeamDirection();
         if (apex == null || direction == null || direction.lengthSquared() < 1.0E-6D) {
             return;
         }
@@ -166,15 +172,19 @@ public class DangLightBlockEntity extends LightPlatformBlockEntity {
 
         java.util.Set<BlockPos> next = buildCone(apex, direction);
 
-        // 1) 整体删除旧的（只删我们自己生成的、且现在仍是光方块的）
+        // 不再增删光方块：把亮度直接注入主世界的光照引擎（性能 + 零割裂）
+        java.util.List<com.dangtools.lighting.LightBridge.Entry> entries =
+                new java.util.ArrayList<>(next.size());
+        for (BlockPos pos : next) {
+            entries.add(new com.dangtools.lighting.LightBridge.Entry(pos, levelFor(pos, apex, direction)));
+        }
+        // 机主实测：灯光桥方案有问题 -> 回到【真的放光方块】的做法（这条能照亮主世界）
         for (BlockPos pos : headlightBlocks) {
             if (!next.contains(pos) && target.getBlockState(pos).is(Blocks.LIGHT)) {
                 target.setBlock(pos, Blocks.AIR.defaultBlockState(),
                         Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
             }
         }
-
-        // 2) 整体生成新的
         int placed = 0;
         for (BlockPos pos : next) {
             if (placed >= MAX_CONE_BLOCKS) {
@@ -193,13 +203,24 @@ public class DangLightBlockEntity extends LightPlatformBlockEntity {
             if (!existing.isAir() && !existing.canBeReplaced()) {
                 continue;
             }
-            target.setBlock(pos, Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL, needed),
-                    Block.UPDATE_ALL);
+            target.setBlock(pos, Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL, needed), Block.UPDATE_ALL);
             pokeLight(target, pos);
             placed++;
         }
 
-        headlightBlocks.clear();
+        // ---- 方案1 的另一半：亮度注入【主世界】光照引擎 ----
+        if (level instanceof net.minecraft.server.level.ServerLevel mainLevel) {
+            java.util.List<com.dangtools.lighting.LightBridge.Entry> bridgeEntries =
+                    new java.util.ArrayList<>(next.size());
+            for (BlockPos pos : next) {
+                org.joml.Vector3d w = worldPosition(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D);
+                bridgeEntries.add(new com.dangtools.lighting.LightBridge.Entry(
+                        net.minecraft.core.BlockPos.containing(w.x, w.y, w.z),
+                        levelFor(pos, apex, direction)));
+            }
+            com.dangtools.lighting.LightBridge.apply(mainLevel, bridgeEntries);
+        }
+
         headlightBlocks.addAll(next);
         lastConeApex = apex;
         lastConeDirection = direction;
@@ -207,6 +228,10 @@ public class DangLightBlockEntity extends LightPlatformBlockEntity {
     }
 
     private void clearCone() {
+        // 把注入主世界光照引擎的数据全部还原（见 LightBridge 的备份/还原机制）
+        if (level instanceof net.minecraft.server.level.ServerLevel sl) {
+            com.dangtools.lighting.LightBridge.clear(sl);
+        }
         if (headlightBlocks.isEmpty()) {
             return;
         }
@@ -412,8 +437,28 @@ public class DangLightBlockEntity extends LightPlatformBlockEntity {
         return LightInputState.inputsFor(level, center.x, center.y, center.z);
     }
 
+    /** 供客户端动态光源读取当前亮度（方块状态已同步，所以客户端也拿得到）。 */
+    public int lightLevelForRender() {
+        try {
+            return getBlockState().getValue(DangLightBlock.LEVEL);
+        } catch (Throwable ignored) {
+            return 0;
+        }
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        if (level != null && level.isClientSide) {
+            com.dangtools.client.DangDynamicLights.register(this);
+        }
+    }
+
     @Override
     public void setRemoved() {
+        if (level != null && level.isClientSide) {
+            com.dangtools.client.DangDynamicLights.unregister(this);
+        }
         clearCone();
         LightRegistry.unregister(worldPosition);
         super.setRemoved();
@@ -432,8 +477,16 @@ public class DangLightBlockEntity extends LightPlatformBlockEntity {
 
     /** 生成 / 读写光方块的目标：优先子世界的 plot（结构本体）；不在结构里才退回主世界。 */
     private net.minecraft.world.level.LevelAccessor lightTarget() {
-        // 机主实测结论：plot(子世界) 里的光方块只能照亮【结构内部】，主世界完全看不到；
-        // 两套光照体系互不相通（主世界的光也照不进结构）。所以光锥必须生成在【主世界】。
+        // 方案1：光方块放 plot（跟着结构走、零割裂），亮度另外注入主世界（见 refreshCone 里的 LightBridge）
+        try {
+            org.joml.Vector3d wc = worldCenter();
+            dev.ryanhcode.sable.sublevel.SubLevel sub = dev.ryanhcode.sable.Sable.HELPER.getContaining(level,
+                    net.minecraft.core.BlockPos.containing(wc.x, wc.y, wc.z));
+            if (sub instanceof dev.ryanhcode.sable.sublevel.ServerSubLevel server) {
+                return server.getPlot().getEmbeddedLevelAccessor();
+            }
+        } catch (Throwable ignored) {
+        }
         return level instanceof net.minecraft.world.level.LevelAccessor accessor ? accessor : null;
     }
 
@@ -467,5 +520,58 @@ public class DangLightBlockEntity extends LightPlatformBlockEntity {
         } catch (Throwable ignored) {
             // 拿不到光照引擎就算了，不影响方块本身
         }
+    }
+
+    // ======================================================================
+    // 大灯瞄准偏角（度）：由「潜行 + 对着方块滚滚轮」调整
+    //   ★ 只影响【光束(丁达尔)的朝向】，不参与任何光照计算
+    // ======================================================================
+    private float aimYaw;
+    private float aimPitch;
+
+    public float aimYaw() {
+        return aimYaw;
+    }
+
+    public float aimPitch() {
+        return aimPitch;
+    }
+
+    /** 调整偏角（客户端调完发服务端；服务端落 NBT 并同步给所有客户端）。 */
+    public void setAim(float yaw, float pitch) {
+        this.aimYaw = net.minecraft.util.Mth.clamp(yaw, -80.0F, 80.0F);
+        this.aimPitch = net.minecraft.util.Mth.clamp(pitch, -60.0F, 60.0F);
+        setChanged();
+        if (level != null && !level.isClientSide) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+        }
+    }
+
+    @Override
+    protected void saveAdditional(net.minecraft.nbt.CompoundTag tag,
+                                  net.minecraft.core.HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
+        tag.putFloat("aimYaw", aimYaw);
+        tag.putFloat("aimPitch", aimPitch);
+    }
+
+    @Override
+    protected void loadAdditional(net.minecraft.nbt.CompoundTag tag,
+                                  net.minecraft.core.HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
+        aimYaw = tag.getFloat("aimYaw");
+        aimPitch = tag.getFloat("aimPitch");
+    }
+
+    @Override
+    public net.minecraft.nbt.CompoundTag getUpdateTag(net.minecraft.core.HolderLookup.Provider registries) {
+        net.minecraft.nbt.CompoundTag tag = new net.minecraft.nbt.CompoundTag();
+        saveAdditional(tag, registries);
+        return tag;
+    }
+
+    @Override
+    public net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket getUpdatePacket() {
+        return net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket.create(this);
     }
 }

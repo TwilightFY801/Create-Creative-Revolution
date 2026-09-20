@@ -4,7 +4,7 @@
   "ingredients": [
     {"item": "minecraft:redstone_lamp"},
     {"item": "minecraft:yellow_stained_glass"},
-    {"item": "minecraft:yellow_stained_glass"}
+    {"item": "minecraft:oak_planks"}
   ],
-  "result": {"id": "dangtools:left_turn_signal", "count": 1}
+  "result": {"id": "dangtools:left_turn_signal", "count": 2}
 }

@@ -3,8 +3,7 @@
   "category": "misc",
   "ingredients": [
     {"item": "minecraft:redstone_lamp"},
-    {"item": "minecraft:yellow_stained_glass"},
-    {"item": "minecraft:white_stained_glass"}
+    {"item": "minecraft:yellow_stained_glass"}
   ],
-  "result": {"id": "dangtools:right_turn_signal", "count": 1}
+  "result": {"id": "dangtools:right_turn_signal", "count": 2}
 }

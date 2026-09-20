@@ -39,6 +39,8 @@ public final class ModNetwork {
         // 新的逻辑输入包
         registrar.playToServer(KeyInputC2SPayload.TYPE, KeyInputC2SPayload.CODEC, ModNetwork::handleKeyInput);
         registrar.playToClient(KeyInputS2CPayload.TYPE, KeyInputS2CPayload.CODEC, ModNetwork::handleKeySync);
+        // 大灯瞄准偏角（潜行 + 对着方块滚滚轮）
+        registrar.playToServer(AimC2SPayload.TYPE, AimC2SPayload.CODEC, ModNetwork::handleAim);
     }
 
     // ---------------- 旧的 key_state ----------------
@@ -88,5 +90,22 @@ public final class ModNetwork {
     private static void handleKeySync(KeyInputS2CPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> LightInputState.setClientFromServer(new LightInputs(
                 payload.forward(), payload.back(), payload.left(), payload.right())));
+    }
+    /** 大灯瞄准：客户端把偏角发上来，服务端落到 BE 并同步给所有客户端。 */
+    private static void handleAim(AimC2SPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (!(context.player() instanceof net.minecraft.server.level.ServerPlayer player)) {
+                return;
+            }
+            if (!(player.level().getBlockEntity(payload.pos())
+                    instanceof com.dangtools.lighting.DangLightBlockEntity be)) {
+                return;
+            }
+            // 距离校验：防止远程改别人的灯
+            if (player.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(payload.pos())) > 100.0D) {
+                return;
+            }
+            be.setAim(payload.yaw(), payload.pitch());
+        });
     }
 }

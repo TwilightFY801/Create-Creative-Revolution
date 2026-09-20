@@ -19,4 +19,12 @@ public class PartyPowerBlock extends CreativeMotorBlock {
     public BlockEntityType<? extends PartyPowerBlockEntity> getBlockEntityType() {
         return Registration.PARTY_POWER_BE.get();
     }
+
+    /** 机主反馈：挖掉会掉成别的方块（继承自 Create 的父类行为），这里直接指定掉自己。 */
+    @Override
+    public java.util.List<net.minecraft.world.item.ItemStack> getDrops(
+            net.minecraft.world.level.block.state.BlockState state,
+            net.minecraft.world.level.storage.loot.LootParams.Builder params) {
+        return java.util.List.of(new net.minecraft.world.item.ItemStack(com.dangtools.Registration.PARTY_POWER_ITEM.get()));
+    }
 }

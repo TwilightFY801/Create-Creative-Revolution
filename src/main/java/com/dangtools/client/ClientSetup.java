@@ -26,9 +26,18 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 public class ClientSetup {
 
     /** 后备：注册普通方块实体渲染器。 */
+    /** 注册大灯光锥的核心着色器（照 HandheldMoon 的 beam_cone 抄的）。 */
+    @net.neoforged.bus.api.SubscribeEvent
+    public static void onRegisterShaders(net.neoforged.neoforge.client.event.RegisterShadersEvent event) {
+        DangHeadlightShaders.onRegisterShaders(event);
+    }
+
+    @net.neoforged.bus.api.SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(Registration.PARTY_POWER_BE.get(), CreativeMotorRenderer::new);
         event.registerBlockEntityRenderer(Registration.DUAL_WHEEL_SUSPENSION_BE.get(), DualWheelSuspensionRenderer::new);
+        // 大灯：纯渲染丁达尔光束（不做光照计算，避免区块光照重建导致移动卡顿）
+        event.registerBlockEntityRenderer(Registration.LIGHTING_LIGHT_BE.get(), DangHeadlightBeamRenderer::new);
         // 灯具不需要额外渲染器：亮度由方块状态属性驱动，外观由普通方块模型绘制
     }
 
